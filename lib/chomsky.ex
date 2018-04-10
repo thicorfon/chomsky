@@ -37,7 +37,7 @@ defmodule Chomsky do
 
   def new_start_state(old_grammar) do
     [nonterminals , terminals, start, relations] = old_grammar
-    [['S0'|nonterminals], terminals, 'S0', [{'S0',[start]} | relations]]
+    [['S0'|nonterminals], terminals, :S0, [{:S0,[start]} | relations]]
   end
 
   #-------------------------------------------------------------------------------------------
@@ -57,19 +57,62 @@ defmodule Chomsky do
 
   #-------------------------------------------------------------------------------------------
 
-  def get_empty_rules(relations, no_empty_relations \\ [], empty_rule_lsh \\ [])
+  def check_null_nonterminals([], _) do
+     false
+  end
 
-  def get_empty_rules([], no_empty_relations, empty_rule_lsh) do
-    {no_empty_relations, empty_rule_lsh}   
+  def check_null_nonterminals(rhs, list_of_null_nonterminals) do
+    [head|tail] = rhs
+    if inList(head, list_of_null_nonterminals) do
+      true
+    else
+      check_null_nonterminals(tail, list_of_null_nonterminals)
+    end
+  end
+
+  #-------------------------------------------------------------------------------------------
+
+  def clean_empty_rules([]) do
+    []
+  end
+
+  def clean_empty_rules(relations) do
+    [head_relation|tail_relation] = relations
+    {_,rhs} = head_relation
+    if rhs == [] do
+      clean_empty_rules(tail_relation)
+    else
+      [head_relation|clean_empty_rules(tail_relation)]
+    end
+  end
+
+  #-------------------------------------------------------------------------------------------
+
+  def get_empty_rules(relations, no_empty_relations \\ [], empty_rule_lhs \\ [])
+
+  def get_empty_rules([], no_empty_relations, empty_rule_lhs) do
+    {no_empty_relations, empty_rule_lhs}
   end
 
   def get_empty_rules(relations, no_empty_relations, empty_rule_lhs) do
-    [head | tail] = relations
-    {lhs, rhs} = head
+    [head_relation|tail_relation] = relations
+    {lhs,rhs} = head_relation
     if rhs == [] do
-      get_empty_rules(tail, no_empty_relations, [lhs | empty_rule_lhs] )
+      if inList(lhs, empty_rule_lhs) == false do
+        get_empty_rules(appendList(no_empty_relations,tail_relation), [], [lhs|empty_rule_lhs]) 
+      else
+        get_empty_rules(tail_relation, no_empty_relations, empty_rule_lhs)
+      end
     else
-      get_empty_rules(tail, [head|no_empty_relations], empty_rule_lhs)
+      if check_null_nonterminals(rhs,empty_rule_lhs) do
+        if inList(lhs, empty_rule_lhs) == false do
+          get_empty_rules(appendList([head_relation|no_empty_relations], tail_relation), [], [lhs|empty_rule_lhs])
+        else
+          get_empty_rules(tail_relation, [head_relation|no_empty_relations], empty_rule_lhs)
+        end
+      else
+        get_empty_rules(tail_relation, [head_relation|no_empty_relations], empty_rule_lhs)  
+      end
     end
   end
 
@@ -129,25 +172,162 @@ defmodule Chomsky do
     # [{'S',['A']}, {'A', ['a','B']}, {'A', ['a']} , {'B',['A']}, {'B',['b']} ]
     [nonterminals , terminals, start, relations] = old_grammar
     {non_empty_relations, empty_left_sides} = get_empty_rules(relations) # Characters that have an empty relation
-    if empty_left_sides == [] do # if none, returns the grammar received
-      old_grammar
+    new_relations = derivate_empty_relations(non_empty_relations, empty_left_sides) # Get a new list of relations, given list of empty left_sides
+    [nonterminals, terminals, start, clean_empty_rules(new_relations)]
+  end
+
+  #-------------------------------------------------------------------------------------------
+
+  def derivate_unit_relations(_, [], _) do
+    []
+  end
+
+  def derivate_unit_relations(unit_relation, relations, seen) do
+    [head_relation | tail_relation] = relations
+    {unit_lhs, [unit_rhs]} = unit_relation
+    {head_lhs, head_rhs} = head_relation
+    if head_lhs == unit_rhs do
+      proposed_relation = {unit_lhs, head_rhs}
+      if inList(proposed_relation, seen) do
+        derivate_unit_relations(unit_relation, tail_relation, seen)
+      else
+        [proposed_relation|derivate_unit_relations(unit_relation, tail_relation, [proposed_relation|seen])]
+      end
     else
-      new_relations = derivate_empty_relations(non_empty_relations, empty_left_sides) # Get a new list of relations, given list of empty left_sides
-      remove_empty_relations([nonterminals , terminals, start, new_relations]) # Run again
+      derivate_unit_relations(unit_relation, tail_relation, seen)
     end
   end
 
   #-------------------------------------------------------------------------------------------
 
+  def get_unit_relations(relations, nonterminals, seen \\ [])
+
+  def get_unit_relations([],_,seen) do
+    seen
+  end
+
+  def get_unit_relations(relations, nonterminals, seen) do
+    [head_relation|tail_relation] = relations
+    {_,rhs} = head_relation
+    if Enum.count(rhs) == 1 do
+      [head_char | _ ] = rhs
+      if inList(head_char, nonterminals) do
+        derivate_unit_relations(head_relation, appendList(seen,tail_relation), seen) |> appendList(tail_relation) |> get_unit_relations(nonterminals, seen)
+      else
+        if inList(head_relation, seen) do
+          get_unit_relations(tail_relation, nonterminals, seen)
+        else
+          get_unit_relations(tail_relation, nonterminals, [head_relation|seen])
+        end
+      end
+    else
+      if inList(head_relation, seen) do
+        get_unit_relations(tail_relation, nonterminals, seen)
+      else
+        get_unit_relations(tail_relation, nonterminals, [head_relation|seen])
+      end
+    end
+
+  end
+
+ #-------------------------------------------------------------------------------------------
+
   def remove_unit_relations(old_grammar) do
-    
+     [nonterminals , terminals, start, relations] = old_grammar
+     [nonterminals, terminals, start, get_unit_relations(relations, nonterminals)]
+  end
+
+  #-------------------------------------------------------------------------------------------
+
+  def get_double_relations(nonterminals, relations, additional_state_aux \\ 0, new_relations \\ [])
+
+  def get_double_relations(nonterminals, [], _, new_relations) do
+    {nonterminals, new_relations}
+  end
+
+  def get_double_relations(nonterminals, relations, additional_state_aux, new_relations) do
+    [head_relation|tail_relation] = relations
+    {lhs, rhs} = head_relation
+    if Enum.count(rhs) > 2 do
+      [head_char | tail_char] = rhs
+      new_state = String.to_atom("q" <> Integer.to_string(additional_state_aux))
+      new_relation = {lhs,[head_char | [new_state]]} 
+      get_double_relations([new_state|nonterminals],
+                           [{new_state, tail_char} | tail_relation], 
+                           additional_state_aux+1,
+                           [new_relation|new_relations])
+    else 
+      get_double_relations(nonterminals,
+                           tail_relation,
+                           additional_state_aux,
+                           [head_relation|new_relations])
+    end
   end
 
   #-------------------------------------------------------------------------------------------
 
   def remove_non_double_relations(old_grammar) do
-    
+    [nonterminals , terminals, start, relations] = old_grammar
+    {new_non_terminals, new_relations} = get_double_relations(nonterminals, relations)
+    [new_non_terminals, terminals, start, new_relations]
   end
+
+
+  #-------------------------------------------------------------------------------------------
+
+  def get_non_terminals_relations(nonterminals, terminals, relations, additional_state_aux \\ 0, new_relations \\ [])
+
+  def get_non_terminals_relations(nonterminals, _, [], _, new_relations) do
+    {nonterminals, new_relations}
+  end
+
+  def get_non_terminals_relations(nonterminals, terminals,  relations, additional_state_aux, new_relations) do
+    [head_relation|tail_relation] = relations
+    {lhs, rhs} = head_relation
+    new_state = String.to_atom("r" <> Integer.to_string(additional_state_aux))
+    if Enum.count(rhs) > 1 do
+      [first | [second]] = rhs
+      if inList(first, terminals) do 
+        new_relation1 = {lhs, [new_state | [second]]}
+        new_relation2 = {new_state, [first]}
+        get_non_terminals_relations([new_state|nonterminals],
+                                    terminals,
+                                    [new_relation1|tail_relation],
+                                    additional_state_aux + 1,
+                                    [new_relation2|new_relations])
+      else
+        if inList(second,terminals) do
+          new_relation1 = {lhs, [first | [new_state]]}
+          new_relation2 = {new_state, [second]}
+          get_non_terminals_relations([new_state|nonterminals],
+                                      terminals,
+                                      tail_relation,
+                                      additional_state_aux + 1,
+                                      [new_relation1|[new_relation2|new_relations]])
+        else
+          get_non_terminals_relations(nonterminals,
+                                      terminals,
+                                      tail_relation,
+                                      additional_state_aux,
+                                      [head_relation|new_relations])
+        end
+      end
+    else
+      get_non_terminals_relations(nonterminals,
+                                  terminals,
+                                  tail_relation,
+                                  additional_state_aux,
+                                  [head_relation|new_relations])
+
+    end
+  end
+  #-------------------------------------------------------------------------------------------
+
+  def remove_non_non_terminals_relations(old_grammar) do
+    [nonterminals , terminals, start, relations] = old_grammar
+    {new_non_terminals, new_relations} = get_non_terminals_relations(nonterminals, terminals, relations)
+    [new_non_terminals, terminals, start, new_relations]
+  end  
 
   #-------------------------------------------------------------------------------------------
 
@@ -158,7 +338,79 @@ defmodule Chomsky do
   # start = coisa, sendo coisa pertencente a nonterminals 'S' 
   # relations = [relation] [{'S',['b','S','A']}, {'A',['a']}]
   # relation = {origem, destino} {'S',['b','S','A']} 'S' -> ['b','S','A']
-    new_start_state(old_grammar) |> remove_empty_relations() |> remove_unit_relations() |> remove_non_double_relations()
+    new_start_state(old_grammar) |> remove_empty_relations() |> remove_unit_relations() |> remove_non_double_relations() |> remove_non_non_terminals_relations()
   end
+
+  #-------------------------------------------------------------------------------------------
+  #-------------------------------------------------------------------------------------------
+  #-------------------------------------------------------------------------------------------
+
+  def build_initial_table(string, size, grammar, i \\ 0, table \\ {})
+
+  def build_initial_table(string, size, grammar, table \\ {}) do
+    [head_char | tail_string] = string
+    build_initial_row(head_char, size, grammar, i)
+    
+  end
+
+  #-------------------------------------------------------------------------------------------
+
+  def build_table(string, size, grammar) do
+    initial_table = build_initial_table(string, size, grammar)
+  end
+
+  #-------------------------------------------------------------------------------------------
+
+  def string_recon(string, grammar) do
+    if ((build_table(string, length(string), grammar) 
+        |> elem(0) 
+        |> elem(length(string))) == []) do
+      false
+    else
+      true
+    end
+  end
+
+
+ elem(x,0) |> elem(1)
+ {{[1],[2],[3]},
+  {[4],[5],[6]},
+  {[7],[8],[9]}}
+
+
+
+x = []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 end
