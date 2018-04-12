@@ -345,26 +345,59 @@ defmodule Chomsky do
   #-------------------------------------------------------------------------------------------
   #-------------------------------------------------------------------------------------------
 
-  def build_initial_table(string, size, grammar, i \\ 0, table \\ {})
 
-  def build_initial_table(string, size, grammar, table \\ {}) do
+  #-------------------------------------------------------------------------------------------
+
+  
+  #-------------------------------------------------------------------------------------------
+
+  def get_alfas_of_relations_with_betas(beta, relations) do
+    # dada relações do tipo alfa -> beta, retorna uma lista de alfas que virem o beta passado
+
+  end
+
+  #-------------------------------------------------------------------------------------------
+  def build_table([], _, table) do
+    table
+  end
+
+  def build_table(string, grammar, table \\ {}) do 
+  # vamos passar por aqui size vezes, de 0 a size-1 colunas
     [head_char | tail_string] = string
-    build_initial_row(head_char, size, grammar, i)
-    
+    [nonterminals , terminals, start, relations] = grammar
+    alfas = get_alfas_of_relations_with_betas(head_char, relations)
+
+
+    build_table(tail_string, grammar, table)
+    #initial_table = build_initial_table(string, size, grammar)
   end
 
   #-------------------------------------------------------------------------------------------
 
-  def build_table(string, size, grammar) do
-    initial_table = build_initial_table(string, size, grammar)
+  def build_initial_table(size, i \\ 0, row \\ {}) do
+    # cria a tabela inicial de tamanho sizeXsize, ou seja, se a string for de tamanho 3
+    # initial_table = {{[],[],[]},
+    #                  {[],[],[]},
+    #                  {[],[],[]}}
+    if (i < size) do
+      IO.puts('i')
+      IO.puts(i)
+      IO.puts('row')
+      #IO.puts(row)
+      row = Tuple.insert_at(row, i, [])
+      build_initial_table(size, i+1, row)
+    else
+      Tuple.duplicate(row, size) # retorna a linha multiplicada pelo tamanho dentro de uma tupla
+    end
   end
+
 
   #-------------------------------------------------------------------------------------------
 
   def string_recon(string, grammar) do
-    if ((build_table(string, length(string), grammar) 
-        |> elem(0) 
-        |> elem(length(string))) == []) do
+    initial_table = build_initial_table(length(string))
+    table = build_table(string, grammar, initial_table)
+    if (elem(table,0) |> elem(length(string)) == []) do
       false
     else
       true
@@ -372,14 +405,7 @@ defmodule Chomsky do
   end
 
 
- elem(x,0) |> elem(1)
- {{[1],[2],[3]},
-  {[4],[5],[6]},
-  {[7],[8],[9]}}
-
-
-
-x = []
+ 
 
 
 

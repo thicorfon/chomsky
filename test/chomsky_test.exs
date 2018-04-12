@@ -269,6 +269,12 @@ defmodule ChomskyTest do
 																			 		   {:A,  []},
 																			 		   {:B,  ['a',:q3]},
 																			 		   {:q3, [:A,:B]}])})
-
 	end
+
+	test "build_initial_table1" do
+		assert (Chomsky.build_initial_table(3) == {{[],[],[]},
+												   {[],[],[]},
+												   {[],[],[]}})
+	end
+
 end
