@@ -345,9 +345,6 @@ defmodule Chomsky do
   #-------------------------------------------------------------------------------------------
   #-------------------------------------------------------------------------------------------
 
-
-  #-------------------------------------------------------------------------------------------
-
   def insert_decente(table, row, column, value) do
     Tuple.insert_at(Tuple.delete_at(table,row),row,Tuple.insert_at(Tuple.delete_at(elem(table,row),column-1),column-1,value))
   end
@@ -394,14 +391,14 @@ defmodule Chomsky do
   #-------------------------------------------------------------------------------------------
 
   def loop_cells(table, j, i, grammar) do
-    loop_cells(table, j , i, i+1, j-2, grammar)
+    loop_cells(table, j , i, i+1, j, grammar)
   end
 
   def loop_cells(table, j, i, k, stop, grammar) do
     if k == stop do
       table
     else
-      new_value = [elem(elem(table,i),j-1) | get_non_terminals(elem(elem(table,i),k-1), elem(elem(table,k),j-1), grammar)]
+      new_value = appendList(elem(elem(table,i),j-1),get_non_terminals(elem(elem(table,i),k-1), elem(elem(table,k),j-1), grammar))
       insert_decente(table, i, j, new_value) |> loop_cells(j, i, k+1, stop, grammar)
     end
   end
@@ -429,7 +426,7 @@ defmodule Chomsky do
   end
 
   def build_table(string, grammar, table, j) do 
-  # vamos passar por aqui size vezes, de 0 a size-1 colunas
+  # vamos passar por aqui size vezes, de 0 a size-1 colunas )
     [head_char | tail_string] = string
     [_ , _, _, relations] = grammar
     alfas = get_alfas_of_relations_with_betas([head_char], relations)
