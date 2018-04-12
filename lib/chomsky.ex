@@ -348,27 +348,91 @@ defmodule Chomsky do
 
   #-------------------------------------------------------------------------------------------
 
+  def insert_decente(table, row, column, value) do
+    Tuple.insert_at(Tuple.delete_at(table,row),row,Tuple.insert_at(Tuple.delete_at(elem(table,row),column-1),column-1,value))
+  end
   
   #-------------------------------------------------------------------------------------------
 
+  def get_alfas_of_relations_with_betas(_, []) do
+    []
+  end
+
   def get_alfas_of_relations_with_betas(beta, relations) do
     # dada relações do tipo alfa -> beta, retorna uma lista de alfas que virem o beta passado
-
+    [head_relation | tail_relation] = relations
+    {lhs,rhs} = head_relation
+    if rhs == beta do
+      [lhs|get_alfas_of_relations_with_betas(beta, tail_relation)]
+    else
+      get_alfas_of_relations_with_betas(beta, tail_relation)
+    end
   end
 
   #-------------------------------------------------------------------------------------------
-  def build_table([], _, table) do
+
+  def get_non_terminals_aux(_, [], _) do
+    []
+  end
+
+  def get_non_terminals_aux(head_b, c, grammar) do
+    [head_c | tail_c] = c
+    [_, _, _, relations] = grammar
+    appendList(get_alfas_of_relations_with_betas([head_b, head_c],relations), get_non_terminals_aux(head_b, tail_c, grammar))
+  end
+
+  #-------------------------------------------------------------------------------------------
+  def get_non_terminals([], _, _) do
+    []
+  end
+
+  def get_non_terminals(b, c, grammar) do
+    [head_b | tail_b] = b
+    appendList(get_non_terminals_aux(head_b, c, grammar), get_non_terminals(tail_b,c, grammar))
+  end
+
+  #-------------------------------------------------------------------------------------------
+
+  def loop_cells(table, j, i, grammar) do
+    loop_cells(table, j , i, i+1, j-2, grammar)
+  end
+
+  def loop_cells(table, j, i, k, stop, grammar) do
+    if k == stop do
+      table
+    else
+      new_value = [elem(elem(table,i),j-1) | get_non_terminals(elem(elem(table,i),k-1), elem(elem(table,k),j-1), grammar)]
+      insert_decente(table, i, j, new_value) |> loop_cells(j, i, k+1, stop, grammar)
+    end
+  end
+
+  #-------------------------------------------------------------------------------------------
+
+  def loop_rows(table, j, grammar) do
+    loop_rows(table, j, j-2, grammar)
+  end
+
+  def loop_rows(table, j, -1, grammar) do
     table
   end
 
-  def build_table(string, grammar, table \\ {}) do 
+  def loop_rows(table, j , i, grammar) do
+    loop_cells(table, j, i , grammar) |> loop_rows(j, i-1, grammar)
+  end
+
+  #-------------------------------------------------------------------------------------------
+  
+  def build_table([], _, table, _) do
+    table
+  end
+
+  def build_table(string, grammar, table, j \\ 1) do 
   # vamos passar por aqui size vezes, de 0 a size-1 colunas
     [head_char | tail_string] = string
     [nonterminals , terminals, start, relations] = grammar
-    alfas = get_alfas_of_relations_with_betas(head_char, relations)
+    alfas = get_alfas_of_relations_with_betas([head_char], relations)
+    new_table = insert_decente(table, j-1, j, alfas) |> loop_rows(j, grammar)
 
-
-    build_table(tail_string, grammar, table)
     #initial_table = build_initial_table(string, size, grammar)
   end
 
