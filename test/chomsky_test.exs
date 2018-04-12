@@ -313,4 +313,33 @@ defmodule ChomskyTest do
 																		    {[],    [],    [],     [],           [],    [],    [:NNS]}}
 	end
 
+	test "string_recon" do
+		old_non_terminals = [:S,:VP,:NP,:PP,:DT,:NN,:NNS,:VBP,:VBZ,:IN]
+		old_terminals = ["the","chef","fish","chopsticks","eats","with"]
+		start = :S
+		old_relations = [{:S,[:NP,:VBZ]},
+						 {:S,[:NP,:VP]},
+						 {:VP,[:VP,:PP]},
+						 {:VP,[:VBZ,:NP]},
+						 {:VP,[:VBZ,:PP]},
+						 {:VP,[:VBZ,:NNS]},
+						 {:VP,[:VBZ,:VP]},
+						 {:VP,[:VBP,:NP]},
+						 {:VP,[:VBP,:PP]},
+						 {:NP,[:DT,:NN]},
+						 {:NP,[:DT,:NNS]},
+						 {:PP,[:IN,:NP]},
+						 {:DT,["the"]},
+						 {:NN,["chef"]},
+						 {:NNS,["fish"]},
+						 {:NNS,["chopsticks"]},
+						 {:VBP,["fish"]},
+						 {:VBZ,["eats"]},
+						 {:IN,["with"]}
+						]
+		string = ["the","chef","eats","fish","with","the","chopsticks"]
+		old_grammar = [old_non_terminals, old_terminals, start, old_relations]
+		assert (Chomsky.string_recon(string, old_grammar) == true)
+	end
+
 end

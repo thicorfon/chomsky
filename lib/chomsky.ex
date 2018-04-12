@@ -449,52 +449,15 @@ defmodule Chomsky do
     end
   end
 
-
-  #-------------------------------------------------------------------------------------------
+    #-------------------------------------------------------------------------------------------
 
   def string_recon(string, grammar) do
     initial_table = build_initial_table(length(string))
     table = build_table(string, grammar, initial_table)
-    if (elem(table,0) |> elem(length(string)) == []) do
+    if (elem(table,0) |> elem(length(string)-1) == []) do
       false
     else
       true
     end
   end
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 end
