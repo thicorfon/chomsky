@@ -149,19 +149,14 @@ defmodule ChomskyTest do
 		old_relations = [{'S',['A']}, {'A', ['a','B']}, {'B',['A','S','B']}, {'B',['b']},{'B',['a','b']}, {'A',['B']}, {'A',[]}]
 		old_grammar = [old_non_terminals, old_terminals, start, old_relations]
 		[_, _, _, new_relations] = Chomsky.remove_empty_relations(old_grammar)
-		assert Enum.sort(new_relations) == Enum.sort([{'S', ['A']}, 
-    												  {'A', ['a','B']},
-    												  {'A', ['a']},
-    												  {'B', ['A']},
-    												  {'B', ['S']},
-    												  {'B', ['B']},
-    												  {'B', ['A','B']},
-    									  			  {'B', ['A','S']},
-    									  			  {'B', ['S','B']},
-    									  			  {'B',['A','S','B']},
-    									  			  {'B', ['b']},
-    									  			  {'B', ['a','b']},
-    									  			  {'A', ['B']}])
+		assert Enum.sort(new_relations) == Enum.sort([{'A', ['B']}, 
+													  {'A', ['a', 'B']}, 
+													  {'B', ['A', 'B']},
+													  {'B', ['A', 'S', 'B']}, 
+													  {'B', ['S', 'B']},
+													  {'B', ['a', 'b']},
+													  {'B', ['b']},
+													  {'S', ['A']}])
 
 	end
 
@@ -193,25 +188,25 @@ defmodule ChomskyTest do
 	end
 
 	test "remove_unit_relations1" do
-		old_non_terminals = ['S','A','B']
+		old_non_terminals = [:S,:A,:B]
 		old_terminals = ['a','b']
-		start = 'S'
-		old_relations = [{'S',['A']}, {'A', ['a','B']}, {'B',['A','S','B']}, {'B',['b']},{'B',['a','b']}, {'A',['B']}, {'A',[]}]
+		start = :S
+		old_relations = [{:S,[:A]}, {:A, ['a',:B]}, {:B,[:A,:S,:B]}, {:B,['b']},{:B,['a','b']}, {:A,[:B]}, {:A,[]}]
 		old_grammar = [old_non_terminals, old_terminals, start, old_relations]
 		[_, _, _, new_relations] = Chomsky.remove_unit_relations(old_grammar)
-		assert Enum.sort(new_relations) == 	Enum.sort([{'S',['a','B']},
-													   {'S',['A','S','B']},
-													   {'S',['b']},
-													   {'S',['a','b']},
-													   {'S',[]},
-													   {'A',['a','B']}, 
-													   {'B',['A','S','B']},
-													   {'B',['b']},
-													   {'B',['a','b']},
-													   {'A',['A','S','B']},
-													   {'A',['b']},
-													   {'A',['a','b']},
-													   {'A',[]}])
+		assert Enum.sort(new_relations) == 	Enum.sort([{:S,['a',:B]},
+													   {:S,[:A,:S,:B]},
+													   {:S,['b']},
+													   {:S,['a','b']},
+													   {:S,[]},
+													   {:A,['a',:B]}, 
+													   {:B,[:A,:S,:B]},
+													   {:B,['b']},
+													   {:B,['a','b']},
+													   {:A,[:A,:S,:B]},
+													   {:A,['b']},
+													   {:A,['a','b']},
+													   {:A,[]}])
 	end
 
 	test "remove_unit_relations2" do
@@ -269,6 +264,10 @@ defmodule ChomskyTest do
 																			 		   {:A,  []},
 																			 		   {:B,  ['a',:q3]},
 																			 		   {:q3, [:A,:B]}])})
+	end
+
+	test "chomsky_normal_form1" do
+		
 	end
 
 	test "build_initial_table1" do

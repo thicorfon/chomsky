@@ -37,7 +37,7 @@ defmodule Chomsky do
 
   def new_start_state(old_grammar) do
     [nonterminals , terminals, start, relations] = old_grammar
-    [['S0'|nonterminals], terminals, :S0, [{:S0,[start]} | relations]]
+    [[:S0|nonterminals], terminals, :S0, [{:S0,[start]} | relations]]
   end
 
   #-------------------------------------------------------------------------------------------
@@ -58,15 +58,15 @@ defmodule Chomsky do
   #-------------------------------------------------------------------------------------------
 
   def check_null_nonterminals([], _) do
-     false
+     true
   end
 
   def check_null_nonterminals(rhs, list_of_null_nonterminals) do
     [head|tail] = rhs
     if inList(head, list_of_null_nonterminals) do
-      true
-    else
       check_null_nonterminals(tail, list_of_null_nonterminals)
+    else
+      false
     end
   end
 
@@ -166,6 +166,26 @@ defmodule Chomsky do
 
   #-------------------------------------------------------------------------------------------
 
+  def remove_trivial_relations([]) do
+    []
+  end
+
+  def remove_trivial_relations(relations) do
+    [head_relation | tail_relation] = relations
+    {lhs, rhs} = head_relation
+    if Enum.count(rhs) == 1 do
+      if [lhs] == rhs do
+        remove_trivial_relations(tail_relation)
+      else 
+        [head_relation | remove_trivial_relations(tail_relation)]
+      end 
+    else
+      [head_relation | remove_trivial_relations(tail_relation)]  
+    end
+  end  
+
+  #-------------------------------------------------------------------------------------------
+
   def remove_empty_relations(old_grammar) do
     # Receives a grammar a return a grammar without empty relations
     # [{'S',['A']}, {'A',[]}, {'A', ['a','B']}, {'B',['A']}, {'B',['b']} ]
@@ -173,7 +193,7 @@ defmodule Chomsky do
     [nonterminals , terminals, start, relations] = old_grammar
     {non_empty_relations, empty_left_sides} = get_empty_rules(relations) # Characters that have an empty relation
     new_relations = derivate_empty_relations(non_empty_relations, empty_left_sides) # Get a new list of relations, given list of empty left_sides
-    [nonterminals, terminals, start, clean_empty_rules(new_relations)]
+    [nonterminals, terminals, start, remove_trivial_relations(clean_empty_rules(new_relations))]
   end
 
   #-------------------------------------------------------------------------------------------
@@ -263,6 +283,8 @@ defmodule Chomsky do
                            [head_relation|new_relations])
     end
   end
+
+  #-------------------------------------------------------------------------------------------
 
   #-------------------------------------------------------------------------------------------
 
@@ -452,8 +474,9 @@ defmodule Chomsky do
     #-------------------------------------------------------------------------------------------
 
   def string_recon(string, grammar) do
+    chomsky_grammar = chomsky_normal_form(grammar)
     initial_table = build_initial_table(length(string))
-    table = build_table(string, grammar, initial_table)
+    table = build_table(string, chomsky_grammar, initial_table)
     if (elem(table,0) |> elem(length(string)-1) == []) do
       false
     else
