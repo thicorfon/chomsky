@@ -435,8 +435,6 @@ defmodule Chomsky do
     alfas = get_alfas_of_relations_with_betas([head_char], relations)
     new_table = insert_decente(table, j-1, j, alfas) |> loop_rows(j, grammar)
     build_table(tail_string, grammar, new_table, j+1)
-
-    #initial_table = build_initial_table(string, size, grammar)
   end
 
   #-------------------------------------------------------------------------------------------
@@ -447,10 +445,6 @@ defmodule Chomsky do
     #                  {[],[],[]},
     #                  {[],[],[]}}
     if (i < size) do
-      IO.puts('i')
-      IO.puts(i)
-      IO.puts('row')
-      #IO.puts(row)
       row = Tuple.insert_at(row, i, [])
       build_initial_table(size, i+1, row)
     else
