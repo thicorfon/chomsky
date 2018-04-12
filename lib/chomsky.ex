@@ -412,7 +412,7 @@ defmodule Chomsky do
     loop_rows(table, j, j-2, grammar)
   end
 
-  def loop_rows(table, j, -1, grammar) do
+  def loop_rows(table, _, -1, _) do
     table
   end
 
@@ -422,16 +422,19 @@ defmodule Chomsky do
 
   #-------------------------------------------------------------------------------------------
   
+  def build_table(string, grammar, table, j \\ 1)
+
   def build_table([], _, table, _) do
     table
   end
 
-  def build_table(string, grammar, table, j \\ 1) do 
+  def build_table(string, grammar, table, j) do 
   # vamos passar por aqui size vezes, de 0 a size-1 colunas
     [head_char | tail_string] = string
-    [nonterminals , terminals, start, relations] = grammar
+    [_ , _, _, relations] = grammar
     alfas = get_alfas_of_relations_with_betas([head_char], relations)
     new_table = insert_decente(table, j-1, j, alfas) |> loop_rows(j, grammar)
+    build_table(tail_string, grammar, new_table, j+1)
 
     #initial_table = build_initial_table(string, size, grammar)
   end
