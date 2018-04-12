@@ -277,4 +277,40 @@ defmodule ChomskyTest do
 												   {[],[],[]}})
 	end
 
+	test "build_table" do
+		old_non_terminals = [:S,:VP,:NP,:PP,:DT,:NN,:NNS,:VBP,:VBZ,:IN]
+		old_terminals = ["the","chef","fish","chopsticks","eats","with"]
+		start = :S
+		old_relations = [{:S,[:NP,:VBZ]},
+						 {:S,[:NP,:VP]},
+						 {:VP,[:VP,:PP]},
+						 {:VP,[:VBZ,:NP]},
+						 {:VP,[:VBZ,:PP]},
+						 {:VP,[:VBZ,:NNS]},
+						 {:VP,[:VBZ,:VP]},
+						 {:VP,[:VBP,:NP]},
+						 {:VP,[:VBP,:PP]},
+						 {:NP,[:DT,:NN]},
+						 {:NP,[:DT,:NNS]},
+						 {:PP,[:IN,:NP]},
+						 {:DT,["the"]},
+						 {:NN,["chef"]},
+						 {:NNS,["fish"]},
+						 {:NNS,["chopsticks"]},
+						 {:VBP,["fish"]},
+						 {:VBZ,["eats"]},
+						 {:IN,["with"]}
+						]
+		string = ["the","chef","eats","fish","with","the","chopsticks"]
+		old_grammar = [old_non_terminals, old_terminals, start, old_relations]
+		initial_table = Chomsky.build_initial_table(length(string))
+		assert Chomsky.build_table(string, old_grammar, initial_table) == {	{[:DT], [:NP], [:S],   [:S],  		 [], 	[],    [:S, :S]}, 
+																			{[], 	[:NN], [], 	   [],    		 [], 	[],    []      },
+ 																			{[],    [],    [:VBZ], [:VP], 		 [], 	[],    [:VP, :VP]},
+ 																			{[], 	[],    [], 	   [:NNS, :VBP], [], 	[],    [:VP]}, 
+ 																			{[], 	[],    [], 	   [], 			 [:IN], [],    [:PP]},
+																		    {[], 	[],    [], 	   [], 			 [], 	[:DT], [:NP]}, 
+																		    {[],    [],    [],     [],           [],    [],    [:NNS]}}
+	end
+
 end
